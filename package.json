@@ -18,6 +18,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.7",
     "@types/react": "^19.1.8",
+    "all-contributors-cli": "^6.26.1",
     "eslint": "^9.30.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-react": "^7.37.5",
