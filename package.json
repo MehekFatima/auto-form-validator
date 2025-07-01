@@ -1,6 +1,6 @@
 {
-  "name": "@mehekfatima/auto-form-validator",
-  "version": "1.0.0",
+  "name": "auto-form-validator",
+  "version": "1.0.1",
   "private": false,
   "description": "A smart, zero-setup form validation library for React with automatic rule detection, i18n support, async validation, and UI integration helpers.",
   "main": "dist/index.js",
@@ -70,8 +70,5 @@
     "ts-jest": "^29.4.0",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3"
-  },
-  "publishConfig": {
-    "access": "restricted"
   }
 }
