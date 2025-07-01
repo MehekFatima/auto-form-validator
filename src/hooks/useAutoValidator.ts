@@ -27,29 +27,30 @@ export const useAutoValidator = (
   const [errors, setErrors] = useState<Errors>({});
   const messages: ValidationMessages = messagesMap[language];
 
-  const extractRules = useCallback((el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement) => {
-    const rules: ValidationRule = {};
+  const extractRules = useCallback(
+    (el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement) => {
+      const rules: ValidationRule = {};
 
-    if (el.required) rules.required = true;
+      if (el.required) rules.required = true;
+      if ("minLength" in el && el.minLength > 0) rules.minLength = el.minLength;
+      if ("maxLength" in el && el.maxLength > 0) rules.maxLength = el.maxLength;
+      if ("pattern" in el && el.pattern) rules.pattern = new RegExp(el.pattern);
 
-    // Support for custom error messages in schema: check if attribute is object or primitive
-    if ("minLength" in el && el.minLength > 0) rules.minLength = el.minLength;
-    if ("maxLength" in el && el.maxLength > 0) rules.maxLength = el.maxLength;
-    if ("pattern" in el && el.pattern) rules.pattern = new RegExp(el.pattern);
+      const typePattern = defaultValidationPatterns[el.type];
+      if (typePattern) {
+        rules.pattern = typePattern;
+      }
 
-    // Use external pattern config, do NOT hardcode here
-    const typePattern = defaultValidationPatterns[el.type];
-    if (typePattern) {
-      rules.pattern = typePattern;
-    }
+      return rules;
+    },
+    []
+  );
 
-    return rules;
-  }, []);
-
-  // Get or create field ref + rules
   const getField = useCallback((name: string) => {
     if (!fields.current[name]) {
-      const ref = React.createRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>();
+      const ref = React.createRef<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >();
       fields.current[name] = {
         ref,
         rules: {},
@@ -58,12 +59,10 @@ export const useAutoValidator = (
     return fields.current[name];
   }, []);
 
-  // Effect to extract rules on mount or when ref.current changes
   useEffect(() => {
-    Object.values(fields.current).forEach(({ ref }, idx) => {
+    Object.entries(fields.current).forEach(([name, { ref }]) => {
       const el = ref.current;
       if (el) {
-        const name = Object.keys(fields.current)[idx];
         const extractedRules = extractRules(el);
         fields.current[name].rules = extractedRules;
       }
@@ -79,7 +78,6 @@ export const useAutoValidator = (
     setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
-  // Debounce onChange for performance
   const debouncedValidateAndSetError = useCallback(
     debounce(validateAndSetError, 300),
     [manualSchema, messages]
@@ -98,7 +96,9 @@ export const useAutoValidator = (
 
     return {
       name,
-      ref: field.ref,
+      ref: (el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null) => {
+        field.ref.current = el;
+      },
       onBlur: handleBlur,
       onChange: handleChange,
     };
