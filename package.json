@@ -1,7 +1,7 @@
 {
-  "name": "@mehekfatima/auto-form-validator", 
+  "name": "@mehekfatima/auto-form-validator",
   "version": "1.0.0",
-  "private": false, 
+  "private": false,
   "description": "A smart, zero-setup form validation library for React with automatic rule detection, i18n support, async validation, and UI integration helpers.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "build": "tsup src/index.tsx src/asyncValidators.ts --format esm,cjs --dts",
-    "clean": "rm -rf dist",
+    "clean": "rimraf dist",
     "lint": "eslint src --ext .ts,.tsx",
     "test": "jest",
     "prepare": "npm run clean && npm run build"
@@ -34,6 +34,16 @@
     "react",
     "async-validation",
     "i18n",
+    "auto-validator"
+  ],
+  "tags": [
+    "form",
+    "validation",
+    "react",
+    "i18n",
+    "async",
+    "hooks",
+    "library",
     "auto-validator"
   ],
   "repository": {
@@ -56,6 +66,7 @@
     "jest-environment-jsdom": "^30.0.2",
     "prettier": "^3.6.2",
     "react-test-renderer": "^19.1.0",
+    "rimraf": "^6.0.1",
     "ts-jest": "^29.4.0",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3"
