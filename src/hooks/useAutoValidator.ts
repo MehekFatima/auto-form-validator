@@ -1,69 +1,132 @@
-import { useState, useCallback } from "react";
-import { ValidationSchema, Errors } from "../types";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import { validateValue } from "../utils/validators";
+import { ValidationRule, Language, ValidationMessages } from "../types";
+import { messagesMap } from "../utils/messages";
+import { defaultValidationPatterns } from "../components/validationPatterns";
 
-interface UseAutoValidatorResult {
-  register: (fieldName: string) => {
-    name: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    onBlur: (e: React.FocusEvent<HTMLInputElement>) => void;
-  };
-  errors: Errors;
-  isValid: boolean;
-  validateForm: (values: Record<string, any>) => boolean;
+type Errors = Record<string, string | null>;
+
+type RegisteredField = {
+  ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null>;
+  rules: ValidationRule;
+};
+
+function debounce<T extends (...args: any[]) => void>(func: T, wait = 300): T {
+  let timeout: ReturnType<typeof setTimeout>;
+  return ((...args: any) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  }) as T;
 }
 
-export function useAutoValidator(schema?: ValidationSchema): UseAutoValidatorResult {
+export const useAutoValidator = (
+  manualSchema: Record<string, ValidationRule> = {},
+  language: Language = "en"
+) => {
+  const fields = useRef<Record<string, RegisteredField>>({});
   const [errors, setErrors] = useState<Errors>({});
-  const [isValid, setIsValid] = useState<boolean>(true);
+  const messages: ValidationMessages = messagesMap[language];
 
-  const validateField = useCallback(
-    (name: string, value: any): boolean => {
-      if (!schema) return true;
+  const extractRules = useCallback((el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement) => {
+    const rules: ValidationRule = {};
 
-      const rules = schema[name];
-      const error = rules ? validateValue(value, rules) : null;
+    if (el.required) rules.required = true;
 
-      setErrors((prev) => ({
-        ...prev,
-        [name]: error,
-      }));
+    // Support for custom error messages in schema: check if attribute is object or primitive
+    if ("minLength" in el && el.minLength > 0) rules.minLength = el.minLength;
+    if ("maxLength" in el && el.maxLength > 0) rules.maxLength = el.maxLength;
+    if ("pattern" in el && el.pattern) rules.pattern = new RegExp(el.pattern);
 
-      return error === null;
-    },
-    [schema]
+    // Use external pattern config, do NOT hardcode here
+    const typePattern = defaultValidationPatterns[el.type];
+    if (typePattern) {
+      rules.pattern = typePattern;
+    }
+
+    return rules;
+  }, []);
+
+  // Get or create field ref + rules
+  const getField = useCallback((name: string) => {
+    if (!fields.current[name]) {
+      const ref = React.createRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>();
+      fields.current[name] = {
+        ref,
+        rules: {},
+      };
+    }
+    return fields.current[name];
+  }, []);
+
+  // Effect to extract rules on mount or when ref.current changes
+  useEffect(() => {
+    Object.values(fields.current).forEach(({ ref }, idx) => {
+      const el = ref.current;
+      if (el) {
+        const name = Object.keys(fields.current)[idx];
+        const extractedRules = extractRules(el);
+        fields.current[name].rules = extractedRules;
+      }
+    });
+  }, [extractRules]);
+
+  const validateAndSetError = async (name: string) => {
+    const field = fields.current[name];
+    if (!field || !field.ref.current) return;
+    const rules = manualSchema[name] || field.rules;
+    const value = field.ref.current.value;
+    const error = await validateValue(value, rules, messages);
+    setErrors((prev) => ({ ...prev, [name]: error }));
+  };
+
+  // Debounce onChange for performance
+  const debouncedValidateAndSetError = useCallback(
+    debounce(validateAndSetError, 300),
+    [manualSchema, messages]
   );
 
-  const register = (name: string) => ({
-    name,
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      validateField(name, value);
-    },
-    onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      validateField(name, value);
-    },
-  });
+  const register = (name: string) => {
+    const field = getField(name);
 
-  const validateForm = (values: Record<string, any>): boolean => {
-    if (!schema) return true;
+    const handleBlur = async () => {
+      await validateAndSetError(name);
+    };
 
-    let allValid = true;
+    const handleChange = () => {
+      debouncedValidateAndSetError(name);
+    };
+
+    return {
+      name,
+      ref: field.ref,
+      onBlur: handleBlur,
+      onChange: handleChange,
+    };
+  };
+
+  const validateForm = async (values: Record<string, string>) => {
+    let valid = true;
     const newErrors: Errors = {};
 
-    for (const field in schema) {
-      const value = values[field];
-      const error = validateValue(value, schema[field]);
-      newErrors[field] = error;
-
-      if (error) allValid = false;
+    for (const name in values) {
+      const field = fields.current[name];
+      const rules = manualSchema[name] || field?.rules || {};
+      const value = values[name];
+      const error = await validateValue(value, rules, messages);
+      newErrors[name] = error;
+      if (error) valid = false;
     }
 
     setErrors(newErrors);
-    setIsValid(allValid);
-    return allValid;
+    return valid;
   };
 
-  return { register, errors, isValid, validateForm };
-}
+  const resetErrors = () => setErrors({});
+
+  return {
+    register,
+    errors,
+    validateForm,
+    resetErrors,
+  };
+};

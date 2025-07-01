@@ -1,45 +1,31 @@
-import React from "react";  
-import { render, fireEvent, screen } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useAutoValidator } from "../src/hooks/useAutoValidator";
+import { waitFor } from "@testing-library/react";
+import React from "react";
 
-function TestComponent({ schema }: { schema: any }) {
-  const { register, errors, validateForm } = useAutoValidator(schema);
+describe("useAutoValidator", () => {
+  it("registers field and validates on change", async () => {
+    const mockAsyncValidator = jest.fn(async () => "Taken");
 
-  return (
-    <>
-      <input {...register("username")} data-testid="username-input" />
-      <span data-testid="error">{errors.username || ""}</span>
-      <button
-        onClick={() => validateForm({ username: (screen.getByTestId("username-input") as HTMLInputElement).value })}
-      >
-        Validate
-      </button>
-    </>
-  );
-}
+    const wrapper = ({ children }: any) => <>{children}</>;
+    const { result } = renderHook(() =>
+      useAutoValidator({
+        username: { async: mockAsyncValidator }
+      }),
+      { wrapper }
+    );
 
-test("validates username field", () => {
-  const schema = { username: { required: true, minLength: 3 } };
+    const props = result.current.register("username");
+    const input = document.createElement("input");
+    input.value = "admin";
+    props.ref.current = input;
 
-  render(<TestComponent schema={schema} />);
-  const input = screen.getByTestId("username-input");
-  const error = screen.getByTestId("error");
-  const button = screen.getByRole("button", { name: /validate/i });
+    await act(async () => {
+      await props.onChange();
+    });
 
-  // Initially no error
-  expect(error.textContent).toBe("");
-
-  // Change input to invalid value
-  fireEvent.change(input, { target: { value: "ab" } });
-  fireEvent.blur(input);
-  fireEvent.click(button);
-
-  expect(error.textContent).toBe("Minimum length is 3");
-
-  // Change input to valid value
-  fireEvent.change(input, { target: { value: "abc" } });
-  fireEvent.blur(input);
-  fireEvent.click(button);
-
-  expect(error.textContent).toBe("");
+    await waitFor(() => {
+      expect(result.current.errors.username).toBe("Taken");
+    });
+  });
 });

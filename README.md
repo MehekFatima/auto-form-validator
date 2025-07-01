@@ -41,44 +41,84 @@ Traditional validators like Yup or Zod require explicit schema definitions and c
 
 ---
 
-## Quick Example
+## ⚡️ Quick Example 
 
 ```tsx
 import React from "react";
-import { useAutoValidator } from "auto-form-validator";
-
-const schema = {
-  username: { required: true, minLength: 3 },
-  email: { required: true, pattern: /^[\w.-]+@[\w.-]+\.\w+$/ },
-};
+import { useAutoValidator, ErrorMessage } from "auto-form-validator";
 
 export default function SignupForm() {
-  const { register, errors, validateForm } = useAutoValidator(schema);
+  const { register, errors, validateForm } = useAutoValidator();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const values = {
       username: e.target.username.value,
       email: e.target.email.value,
     };
-    if (validateForm(values)) {
+    const isValid = await validateForm(values);
+    if (isValid) {
       alert("Form valid! Submit logic here.");
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <input {...register("username")} placeholder="Username" />
-      <p>{errors.username}</p>
+      <input name="username" required minLength={3} {...register("username")} />
+      <ErrorMessage name="username" errors={errors} />
 
-      <input {...register("email")} placeholder="Email" />
-      <p>{errors.email}</p>
+      <input name="email" type="email" required {...register("email")} />
+      <ErrorMessage name="email" errors={errors} />
 
       <button type="submit">Register</button>
     </form>
   );
 }
+
+
+🔄 Async Validation
+-------------------
+
+You can create dynamic async validators with helper functions:
+
+```tsx
+import { createUsernameAvailableValidator } from "auto-form-validator/asyncValidators";
+
+const schema = {
+  username: {
+    required: true,
+    async: createUsernameAvailableValidator(async (username) => {
+      // Simulate API call
+      const taken = ["admin", "mehek"];
+      return !taken.includes(username);
+    }, "Username is already taken"),
+  },
+};
+
 ```
+
+🌍 i18n Support
+---------------
+
+Supports multi-language error messages (default: English + Hindi):
+
+```tsx
+const { register, errors } = useAutoValidator(schema, "hi");
+```
+
+You can also define your own messages:
+
+```tsx
+const customMessages = {
+  required: "Custom required message",
+  minLength: (n) => `Custom: minimum ${n} chars`,
+  maxLength: (n) => `Custom: max ${n} chars`,
+  pattern: "Custom pattern failed",
+  async: "Custom async failed",
+};
+
+```
+
 Real-World Benefits
 -------------------
 

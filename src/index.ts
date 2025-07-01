@@ -1,2 +1,3 @@
-// export * from "./hooks/useAutoValidator";
-// export * from "./components/ErrorMessage";
+export { useAutoValidator } from "./hooks/useAutoValidator";
+export { default as ErrorMessage } from "./components/ErrorMessage";
+export * from "./types";

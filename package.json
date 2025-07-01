@@ -1,19 +1,49 @@
 {
-  "name": "auto-form-validator",
+  "name": "@mehekfatima/auto-form-validator", 
   "version": "1.0.0",
+  "private": false, 
   "description": "A smart, zero-setup form validation library for React with automatic rule detection, i18n support, async validation, and UI integration helpers.",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./asyncValidators": {
+      "import": "./dist/asyncValidators.mjs",
+      "require": "./dist/asyncValidators.js",
+      "types": "./dist/asyncValidators.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
-    "build": "tsup src/index.tsx --format esm,cjs --dts",
+    "build": "tsup src/index.tsx src/asyncValidators.ts --format esm,cjs --dts",
     "clean": "rm -rf dist",
     "lint": "eslint src --ext .ts,.tsx",
     "test": "jest",
     "prepare": "npm run clean && npm run build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "form-validation",
+    "react",
+    "async-validation",
+    "i18n",
+    "auto-validator"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MehekFatima/auto-form-validator.git"
+  },
+  "author": "Mehek Fatima",
+  "license": "MIT",
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.7",
@@ -29,5 +59,8 @@
     "ts-jest": "^29.4.0",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3"
+  },
+  "publishConfig": {
+    "access": "restricted"
   }
 }
